@@ -1,0 +1,16 @@
+CC := gcc 
+CFLAGS := -std=c17 -fPIC
+SRC := ./src
+BUILD := ./build
+SHARE := -shared
+
+all: libtrack.so
+
+$(BUILD)/mtrack.o: $(SRC)/memtrack_05.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+libtrack.so: $(BUILD)/mtrack.o
+	$(CC) $(SHARE) $< -o $@
+
+clean:
+	rm -f $(BUILD)/mtrack.o libtrack.so
