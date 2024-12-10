@@ -1,6 +1,14 @@
+#define  _DEFAULT_SOURCE
 #include<stdio.h>
 #include<stdlib.h>
 #include<stdbool.h>
+#include<time.h>
+#include <unistd.h>
+#include <pwd.h>
+#include <linux/limits.h>
+#include <bits/local_lim.h>
+#define RED "\x1B[31m"
+#define RESET "\x1B[0m"
 
 // Liste chainée (symbolise les blocs mémoire)
 
@@ -44,25 +52,49 @@ void clean_Table(void) {
     table.nb_frees_succeed = 0;
 }
 
+void show_begin_track(void){
+    fprintf(stderr,"– (libmtrack) activation automatique > stderr – \n");
+    fprintf(stderr,"-------------------\n");
+    time_t date_now = time(NULL);
+    struct tm *local = localtime(&date_now);
+    fprintf(stderr,"DATE : %02d/%02d/%04d %02d:%02d:%02d\n",
+           local->tm_mday, local->tm_mon + 1, local->tm_year + 1900,
+           local->tm_hour, local->tm_min, local->tm_sec);
+    // Obtenir le nom de l'utilisateur
+    struct passwd *pw = getpwuid(getuid());
+    const char *user = pw->pw_name;
+
+    // Obtenir le nom de l'hôte
+    char hostname[HOST_NAME_MAX];
+    gethostname(hostname, sizeof(hostname));
+
+    // Obtenir le répertoire de travail
+    char cwd[PATH_MAX];
+    getcwd(cwd, sizeof(cwd));
+    fprintf(stderr,"USER : %s\n", user);
+    fprintf(stderr,"HOST : %s\n", hostname);
+    fprintf(stderr,"DIR : %s\n", cwd);
+    fprintf(stderr,"-------------------\n");
+
+}
+
 
 
 void show_track(void){
-    //Liste temp = table.list_ptrs;
-    //int nb_malloc = 0, nb_free = 0;
     double ratio;
-    fprintf(stdout,"-------------------\n");
-    fprintf(stdout, "BILAN FINAL \n");
-    fprintf(stdout,"total mémoire allouée  : %d octets\n",table.mem_used);
-    fprintf(stdout,"total mémoire libérée  : %d octets\n",table.mem_freed);
+    fprintf(stderr,"-------------------\n");
+    fprintf(stderr, "BILAN FINAL \n");
+    fprintf(stderr,"total mémoire allouée  : %d octets\n",table.mem_used);
+    fprintf(stderr,"total mémoire libérée  : %d octets\n",table.mem_freed);
     if (table.mem_used > 0) {
         ratio = ((double)table.mem_freed / table.mem_used) * 100;
-        fprintf(stdout, "Ratio mémoire libérée/mémoire allouée : %d%%\n", (int)ratio);
+        fprintf(stderr, "Ratio mémoire libérée/mémoire allouée : %d%%\n", (int)ratio);
     } else {
-        fprintf(stdout, "Ratio mémoire libérée/mémoire allouée : N/A (aucune mémoire allouée)\n");
+        fprintf(stderr, RED"Ratio mémoire libérée/mémoire allouée : N/A (aucune mémoire allouée)" RESET "\n");
     }
-    fprintf(stdout, "<malloc> : %d appel \n",table.nb_mallocs);
-    fprintf(stdout, "<free> : %d appel correct \n       : %d appel incorrect \n",table.nb_frees_succeed,table.nb_frees_failed);
-    fprintf(stdout,"-------------------\n");
+    fprintf(stderr, "<malloc> : %d appel \n",table.nb_mallocs);
+    fprintf(stderr, RED "<free> : %d appel correct \n       : %d appel incorrect " RESET "\n",table.nb_frees_succeed,table.nb_frees_failed);
+    fprintf(stderr,"-------------------\n");
 
 }
 
@@ -74,6 +106,7 @@ void end_track(void){
 void initialize_tracing() {
     if (!flag) {
         flag = true;
+        show_begin_track();
         if (atexit(end_track) != 0) {
             fprintf(stderr, "Erreur lors de l'enregistrement de end_track avec atexit\n");
             exit(EXIT_FAILURE);
@@ -133,7 +166,7 @@ void *my_malloc(const char* file,const char* func, int line,size_t size_type) {
         Cellule* new_cell = create_cell(ptr, size_type,true);
         add_to_list(new_cell);
         table.nb_mallocs++;
-        fprintf(stdout, "in file<%s> function <%s> line <%d> - (call#%d) - malloc(%ld) -> %p\n",file,func,line,table.nb_mallocs,size_type, ptr);
+        fprintf(stderr, "in file<%s> function <%s> line <%d> - (call#%d) - malloc(%ld) -> %p\n",file,func,line,table.nb_mallocs,size_type, ptr);
         table.mem_used += size_type;
         return ptr;
     }
@@ -149,13 +182,13 @@ void my_free(const char* file,const char* func, int line,void* ptr) {
         if (temp->data == ptr) {
             if (temp->boolean == true) {
                 temp->boolean = false;
-                free(ptr);
                 table.nb_frees_succeed++;
                 table.mem_freed += temp->size;
-                fprintf(stdout, "in file<%s> function <%s> line <%d> - (call#%d) - free(%p)\n", file,func,line,table.nb_frees_succeed, ptr);
+                fprintf(stderr, "in file<%s> function <%s> line <%d> - (call#%d) - free(%p)\n", file,func,line,table.nb_frees_succeed, ptr);
+                free(ptr);
             } else {
                 table.nb_frees_failed++;
-                fprintf(stdout, "in file<%s> function <%s> line <%d> - (call#%d) - free(%p) - Erreur : adresse déjà libérée\n",file,func,line,table.nb_frees_failed, ptr);
+                fprintf(stderr, RED "in file<%s> function <%s> line <%d> - (call#%d) - free(%p) - Erreur : adresse déjà libérée" RESET "\n",file,func,line,table.nb_frees_failed, ptr);
             }
             table.nb_frees++;
             return;
@@ -166,7 +199,7 @@ void my_free(const char* file,const char* func, int line,void* ptr) {
     // Si le pointeur n'a pas été trouvé dans la liste
     table.nb_frees_failed++;
     table.nb_frees++;
-    fprintf(stdout, "in file<%s> function <%s> line <%d> - (call#%d) - free(%p) - Erreur : adresse non trouvée\n",file,func,line,table.nb_frees_failed, ptr);
+    fprintf(stderr, RED "in file<%s> function <%s> line <%d> - (call#%d) - free(%p) - Erreur : adresse non trouvée" RESET "\n",file,func,line,table.nb_frees_failed, ptr);
 }
 
 

@@ -1,0 +1,24 @@
+CC := gcc
+CFLAGS := -std=c17 -fPIC
+SRC := ./src
+BUILD := ./build
+SHARE := -shared
+LIB := libtrack.so
+PREFIX := /usr/local
+
+all: $(LIB)
+
+$(BUILD)/mtrack.o: $(SRC)/memtrack_05.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(LIB): $(BUILD)/mtrack.o
+	$(CC) $(SHARE) $< -o $@
+
+install: $(LIB)
+	install -d $(PREFIX)/lib
+	install -m 755 $(LIB) $(PREFIX)/lib
+	ldconfig
+
+clean:
+	rm -f $(BUILD)/mtrack.o $(LIB)
+	rm -rf $(BUILD)
