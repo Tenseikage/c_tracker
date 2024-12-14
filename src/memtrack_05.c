@@ -3,6 +3,7 @@
 #include<stdlib.h>
 #include<stdbool.h>
 #include<time.h>
+#include<string.h>
 #include <unistd.h>
 #include <pwd.h>
 #include <linux/limits.h>
@@ -32,9 +33,73 @@ typedef struct table {
 
 } Table_register;
 
+typedef struct {
+    char **data;    // Tableau de chaînes de caractères
+    size_t size;    // Nombre actuel de chaînes de caractères
+    size_t capacity; // Capacité du tableau
+} StringList;
+
 static Table_register table;
 bool flag = false;
+StringList list;
 
+
+char *strdup(const char *s) {
+    size_t len = strlen(s);
+    char *dup = malloc(len + 1);
+    if (dup != NULL) {
+        strcpy(dup, s);
+    }
+    return dup;
+}
+
+
+void initStringList(StringList *list) {
+    list->size = 0;
+    list->capacity = 10; // Capacité initiale
+    printf("Initialisation de la liste avec une capacité de %zu\n", list->capacity);
+    list->data = malloc(list->capacity * sizeof(char *));
+    if (list->data == NULL) {
+        fprintf(stderr, "Erreur d'allocation de mémoire\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+
+void addString(StringList *list, const char *str) {
+    if (list->size >= list->capacity) {
+        list->capacity *= 2;
+        list->data = realloc(list->data, list->capacity * sizeof(char *));
+        if (list->data == NULL) {
+            fprintf(stderr, "Erreur d'allocation de mémoire lors du redimensionnement\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+    
+    list->data[list->size] = strdup(str);
+    if (list->data[list->size] == NULL) {
+        fprintf(stderr, "Erreur d'allocation de mémoire pour la chaîne de caractères\n");
+        exit(EXIT_FAILURE);
+    }
+    list->size++;
+}
+
+
+void freeStringList(StringList *list) {
+    for (size_t i = 0; i < list->size; i++) {
+        free(list->data[i]);
+    }
+    free(list->data);
+    list->size = 0;
+    list->capacity = 0;
+    list->data = NULL;
+}
+
+void printStringList(const StringList *list) {
+    for (size_t i = 0; i < list->size; i++) {
+        printf("%s\n", list->data[i]);
+    }
+}
 void clean_Table(void) {
     //Nettoyage table
     Liste temp = table.list_ptrs;
@@ -58,6 +123,7 @@ void clean_Table(void) {
 
 
 void show_begin_track(void){
+    fprintf(stderr,"\n");
     fprintf(stderr,"– (libmtrack) activation automatique > stderr – \n");
     fprintf(stderr,"-------------------\n");
     time_t date_now = time(NULL);
@@ -106,6 +172,8 @@ void show_track(void){
 }
 
 void end_track(void){
+    show_begin_track();
+    printStringList(&list);
     show_track();
     clean_Table();
 }
@@ -113,7 +181,7 @@ void end_track(void){
 void initialize_tracing() {
     if (!flag) {
         flag = true;
-        show_begin_track();
+        initStringList(&list);
         if (atexit(end_track) != 0) {
             fprintf(stderr, "Erreur lors de l'enregistrement de end_track avec atexit\n");
             exit(EXIT_FAILURE);
@@ -160,7 +228,10 @@ void *my_malloc(const char* file,const char* func, int line,size_t size_type) {
         Cellule* new_cell = create_cell(ptr, size_type,true);
         add_to_list(new_cell);
         table.nb_mallocs++;
-        fprintf(stderr, "in file<%s> function <%s> line <%d> - (call#%d) - malloc(%ld) -> %p\n",file,func,line,table.nb_mallocs,size_type, ptr);
+        char buffer[256];
+        snprintf(buffer, sizeof(buffer), "in file<%s> function <%s> line <%d> - (call#%d) - malloc(%ld) -> %p",
+                 file, func, line, table.nb_mallocs, size_type, ptr);
+        addString(&list,buffer);
         table.mem_used += size_type;
         return ptr;
     }
@@ -182,8 +253,10 @@ void *my_calloc(const char* file,const char* func, int line,int size, size_t siz
         Cellule* new_cell = create_cell(ptr, size_type,true);
         add_to_list(new_cell);
         table.nb_callocs++;
-        fprintf(stderr, "in file<%s> function <%s> line <%d> - (call#%d) - calloc(%ld) -> %p\n",file,func,line,table.nb_callocs,size_type * size, ptr);
-        table.mem_used += size_type;
+        table.mem_used+=size_type;
+        char buffer[256];
+        snprintf(buffer,sizeof(buffer),"in file<%s> function <%s> line <%d> - (call#%d) - calloc(%ld) -> %p",file,func,line,table.nb_callocs,size_type * size, ptr);
+        addString(&list,buffer);
         return ptr;
     }
 
@@ -207,8 +280,10 @@ void *my_realloc(const char* file, const char* func, int line, void* ptr, size_t
             }
             temp->data = new_ptr;
             table.nb_reallocs++;
-            fprintf(stderr, "in file<%s> function <%s> line <%d> - (call#%d) - realloc(%ld) -> %p\n",
+            char buffer[256];
+            snprintf(buffer, sizeof(buffer),"in file<%s> function <%s> line <%d> - (call#%d) - realloc(%ld) -> %p",
                     file, func, line, table.nb_reallocs, size_type, new_ptr);
+            addString(&list,buffer);
             table.mem_used += size_type;
             temp->size += size_type;
             return new_ptr;
@@ -224,6 +299,7 @@ void my_free(const char* file,const char* func, int line,void* ptr) {
       fprintf(stderr, "Erreur : libération impossible (aucune allocation faite avec malloc/calloc)");
       exit(EXIT_FAILURE);
     }
+    //printf("capacity3 : %zu\n",list.capacity);
     if (!ptr) return;
     Liste temp = table.list_ptrs;
     while (temp) {
@@ -232,11 +308,15 @@ void my_free(const char* file,const char* func, int line,void* ptr) {
                 temp->boolean = false;
                 table.nb_frees_succeed++;
                 table.mem_freed += temp->size;
-                fprintf(stderr, "in file<%s> function <%s> line <%d> - (call#%d) - free(%p)\n", file,func,line,table.nb_frees_succeed, ptr);
+                char buffer[256];
+                snprintf(buffer, sizeof(buffer),"in file<%s> function <%s> line <%d> - (call#%d) - free(%p)", file,func,line,table.nb_frees_succeed, ptr);
+                addString(&list,buffer);
                 free(ptr);
             } else {
                 table.nb_frees_failed++;
-                fprintf(stderr, RED "in file<%s> function <%s> line <%d> - (call#%d) - free(%p) - Erreur : double free détecté" RESET "\n",file,func,line,table.nb_frees_failed, ptr);
+                char buffer[256];
+                snprintf(buffer,sizeof(buffer),  RED "in file<%s> function <%s> line <%d> - (call#%d) - free(%p) - Erreur : double free détecté" RESET ,file,func,line,table.nb_frees_failed, ptr);
+                addString(&list,buffer);
             }
             table.nb_frees++;
             return;
@@ -245,7 +325,7 @@ void my_free(const char* file,const char* func, int line,void* ptr) {
     }
     table.nb_frees_failed++;
     table.nb_frees++;
-    fprintf(stderr, RED "in file<%s> function <%s> line <%d> - (call#%d) - free(%p) - Erreur : adresse non trouvée" RESET "\n",file,func,line,table.nb_frees_failed, ptr);
+    char buffer[256];
+    snprintf(buffer, sizeof(buffer), RED "in file<%s> function <%s> line <%d> - (call#%d) - free(%p) - Erreur : adresse non trouvée" RESET, file, func, line, table.nb_frees_failed, ptr);
+    addString(&list,buffer);
 }
-
-

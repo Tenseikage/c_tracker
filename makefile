@@ -5,7 +5,8 @@ BIN := ./bin
 BUILD := ./build
 SRC := ./src
 INC := ./inc
-IPATH := -include 
+IPATH := -include
+LIB := ./lib
 
 all: $(BIN)/main
 

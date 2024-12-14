@@ -49,18 +49,6 @@ void add_to_list(Cellule* new_cell){
         table.list_ptrs = new_cell;
 }
 
-Table_register create_data_mem(void){
-    //Table_register new_table;
-    table.list_ptrs = NULL;
-    table.nb_mallocs = 0;
-    table.mem_freed = 0;
-    table.mem_used = 0;
-    table.nb_frees = 0;
-    table.nb_frees_failed = 0;
-    table.nb_frees_succeed = 0;
-    return table;
-
-}
 
 void my_malloc(int size, size_t size_type){
     if (size <= 0){
@@ -168,7 +156,6 @@ void show_track(void){
 
 void test_allocation_and_free() {
     // Initialize the memory tracking table
-    table = create_data_mem();
 
     // Test 1: Allocate memory and check the tracking
     my_malloc(10, sizeof(int));

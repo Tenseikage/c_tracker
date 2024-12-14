@@ -4,6 +4,7 @@ int main(void){
 	char *b=malloc(1);
 	char *c = calloc(1,sizeof(char));
 	a = realloc(a,sizeof(char));
+	printf("ouiiioooooooo\n");
 	free(a);
 	b++;
 	free(b);

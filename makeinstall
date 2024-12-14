@@ -4,21 +4,25 @@ SRC := ./src
 BUILD := ./build
 SHARE := -shared
 LIB := libtrack.so
-PREFIX := /usr/local
+PREFIX := /usr/lib
+LIBS := ./lib
+PREFIX_INC := /usr/include
+INCLUDE := ./inc
 
-all: $(LIB)
+all: $(LIBS)/$(LIB)
 
 $(BUILD)/mtrack.o: $(SRC)/memtrack_05.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(LIB): $(BUILD)/mtrack.o
+$(LIBS)/$(LIB): $(BUILD)/mtrack.o
 	$(CC) $(SHARE) $< -o $@
 
-install: $(LIB)
-	install -d $(PREFIX)/lib
-	install -m 755 $(LIB) $(PREFIX)/lib
-	ldconfig
+install: $(LIBS)/$(LIB)
+	sudo install -d $(PREFIX)
+	sudo install -m 755 $(LIBS)/$(LIB) $(PREFIX)
+	sudo install -m 644 $(INCLUDE)/memtrack_05.h $(PREFIX_INC)
+	sudo ldconfig
 
 clean:
-	rm -f $(BUILD)/mtrack.o $(LIB)
+	rm -f $(BUILD)/mtrack.o $(LIBS)/$(LIB)
 	rm -rf $(BUILD)
