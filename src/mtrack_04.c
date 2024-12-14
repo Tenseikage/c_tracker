@@ -209,6 +209,7 @@ void *my_realloc(void* ptr, size_t size_type) {
             fprintf(stderr, "(call#%d) - realloc(%ld) -> %p\n",
                     table.nb_reallocs, size_type, new_ptr);
             table.mem_used += size_type;
+            temp->size += size_type;
             return new_ptr;
         }
         temp = temp->suiv;
@@ -234,7 +235,7 @@ void my_free(void* ptr) {
                 free(ptr);
             } else {
                 table.nb_frees_failed++;
-                fprintf(stderr, RED "(call#%d) - free(%p) - Erreur : adresse déjà libérée" RESET "\n",table.nb_frees_failed, ptr);
+                fprintf(stderr, RED "(call#%d) - free(%p) - Erreur : double free détecté" RESET "\n",table.nb_frees_failed, ptr);
             }
             table.nb_frees++;
             return;

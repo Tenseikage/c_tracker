@@ -99,6 +99,7 @@ void show_track(void){
     }
     fprintf(stderr, "<malloc> : %d appel(s) \n",table.nb_mallocs);
     fprintf(stderr, "<calloc> : %d appel(s) \n",table.nb_callocs);
+    fprintf(stderr, "<realloc> : %d appel(s) \n",table.nb_reallocs);
     fprintf(stderr,  "<free> : %d appel(s) correct(s) \n  "  RED   "     : %d appel(s) incorrect(s) " RESET "\n",table.nb_frees_succeed,table.nb_frees_failed);
     fprintf(stderr,"-------------------\n");
 
@@ -209,6 +210,7 @@ void *my_realloc(const char* file, const char* func, int line, void* ptr, size_t
             fprintf(stderr, "in file<%s> function <%s> line <%d> - (call#%d) - realloc(%ld) -> %p\n",
                     file, func, line, table.nb_reallocs, size_type, new_ptr);
             table.mem_used += size_type;
+            temp->size += size_type;
             return new_ptr;
         }
         temp = temp->suiv;
@@ -234,7 +236,7 @@ void my_free(const char* file,const char* func, int line,void* ptr) {
                 free(ptr);
             } else {
                 table.nb_frees_failed++;
-                fprintf(stderr, RED "in file<%s> function <%s> line <%d> - (call#%d) - free(%p) - Erreur : adresse déjà libérée" RESET "\n",file,func,line,table.nb_frees_failed, ptr);
+                fprintf(stderr, RED "in file<%s> function <%s> line <%d> - (call#%d) - free(%p) - Erreur : double free détecté" RESET "\n",file,func,line,table.nb_frees_failed, ptr);
             }
             table.nb_frees++;
             return;
