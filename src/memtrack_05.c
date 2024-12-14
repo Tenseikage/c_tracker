@@ -167,6 +167,7 @@ void show_track(void){
     fprintf(stderr, "<realloc> : %d appel(s) \n",table.nb_reallocs);
     fprintf(stderr,  "<free> : %d appel(s) correct(s) \n  "  RED   "     : %d appel(s) incorrect(s) " RESET "\n",table.nb_frees_succeed,table.nb_frees_failed);
     fprintf(stderr,"-------------------\n");
+    fprintf(stderr,"\n");
 
 }
 
