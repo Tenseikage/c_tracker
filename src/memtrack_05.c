@@ -57,7 +57,6 @@ char *strdup(const char *s) {
 void initStringList(StringList *list) {
     list->size = 0;
     list->capacity = 10; // Capacité initiale
-    printf("Initialisation de la liste avec une capacité de %zu\n", list->capacity);
     list->data = malloc(list->capacity * sizeof(char *));
     if (list->data == NULL) {
         fprintf(stderr, "Erreur d'allocation de mémoire\n");
