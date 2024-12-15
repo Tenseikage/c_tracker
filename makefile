@@ -1,24 +1,40 @@
-# Compilation et flags
-CC := gcc 
-CFLAGS := -Wall -std=c17 
-BIN := ./bin
-BUILD := ./build
+CC := gcc
+CFLAGS := -std=c17 -fPIC
 SRC := ./src
-INC := ./inc
-IPATH := -include
-LIB := ./lib
+BUILD := ./build
+SHARE := -shared
+LIB := libtrack.so
+PREFIX := /usr/lib
+LIBS := ./lib
+PREFIX_INC := /usr/include
+INCLUDE := ./inc
 
-all: $(BIN)/main
+#Création de la librairie partagée 
+all: $(LIBS)/$(LIB)
 
-$(BIN)/main: $(BUILD)/memtrack_05.o $(BUILD)/track_04.o
-	$(CC) $(CFLAGS) -o $@ $^
-
-$(BUILD)/memtrack_05.o: $(SRC)/memtrack_05.c 
+$(BUILD)/mtrack.o: $(SRC)/memtrack_05.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD)/track_04.o: $(INC)/memtrack_05.h $(SRC)/track_04.c 
-	$(CC) $(CFLAGS) $(IPATH) $^ -c -o $@
+$(LIBS)/$(LIB): $(BUILD)/mtrack.o
+	$(CC) $(SHARE) $< -o $@
 
+#755 : Lecture, écriture et exécution pour l'utilisateur (le reste peut lire et exécuter)
+#644 : Lecture et écriture pour l'utilisateur (le reste peut uniquement lire)
+#La librairie se situe dans usr/lib et le header dans usr/include
+
+#installation
+install: $(LIBS)/$(LIB)
+	sudo install -d $(PREFIX)
+	sudo install -m 755 $(LIBS)/$(LIB) $(PREFIX)
+	sudo install -m 644 $(INCLUDE)/memtrack_05.h $(PREFIX_INC)
+	sudo ldconfig
+
+#Désinstallation
+uninstall:
+	sudo rm -f $(PREFIX)/$(LIB)
+	sudo rm -f $(PREFIX_INC)/memtrack_05.h
+	sudo ldconfig
 
 clean:
-	rm -f $(BUILD)/*.o $(BIN)/main
+	rm -f $(BUILD)/mtrack.o $(LIBS)/$(LIB)
+	rm -rf $(BUILD)

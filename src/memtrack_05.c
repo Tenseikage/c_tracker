@@ -11,6 +11,9 @@
 #define RED "\x1B[31m"
 #define RESET "\x1B[0m"
 
+// Author : Christophe TARATIBU
+// Version finale du traceur d'allocation de mémoire
+
 // Liste chainée (symbolise les blocs mémoire)
 
 typedef struct cell{
@@ -45,6 +48,7 @@ StringList list;
 
 
 char *strdup(const char *s) {
+    // copie d'une chaîne de caractère
     size_t len = strlen(s);
     char *dup = malloc(len + 1);
     if (dup != NULL) {
@@ -55,6 +59,7 @@ char *strdup(const char *s) {
 
 
 void initStringList(StringList *list) {
+    // Intialisation du tableau contenant les chaînes de caractères
     list->size = 0;
     list->capacity = 10; // Capacité initiale
     list->data = malloc(list->capacity * sizeof(char *));
@@ -66,6 +71,7 @@ void initStringList(StringList *list) {
 
 
 void addString(StringList *list, const char *str) {
+    // Ajout d'une chaîne de caractères dans le tableau
     if (list->size >= list->capacity) {
         list->capacity *= 2;
         list->data = realloc(list->data, list->capacity * sizeof(char *));
@@ -85,6 +91,7 @@ void addString(StringList *list, const char *str) {
 
 
 void freeStringList(StringList *list) {
+    // Libération du tableau
     for (size_t i = 0; i < list->size; i++) {
         free(list->data[i]);
     }
@@ -95,6 +102,7 @@ void freeStringList(StringList *list) {
 }
 
 void printStringList(const StringList *list) {
+    // Affichage des chaînes de caractères du tableau
     for (size_t i = 0; i < list->size; i++) {
         printf("%s\n", list->data[i]);
     }
@@ -122,6 +130,7 @@ void clean_Table(void) {
 
 
 void show_begin_track(void){
+    // Affichafge du début du compte rendu du traceur
     fprintf(stderr,"\n");
     fprintf(stderr,"– (libmtrack) activation automatique > stderr – \n");
     fprintf(stderr,"-------------------\n");
@@ -151,6 +160,7 @@ void show_begin_track(void){
 
 
 void show_track(void){
+    // Affichage du compte rendu du traceur
     double ratio;
     fprintf(stderr,"-------------------\n");
     fprintf(stderr, "BILAN FINAL \n");
@@ -159,6 +169,11 @@ void show_track(void){
     if (table.mem_used > 0) {
         ratio = ((double)table.mem_freed / table.mem_used) * 100;
         fprintf(stderr, "Ratio mémoire libérée/mémoire allouée : %d%%\n", (int)ratio);
+        if(ratio == 100){
+            fprintf(stderr,"Aucune fuite mémoire : programme entièrement fonctionnel \n");
+        } else {
+            fprintf(stderr,"Présence de fuites mémoires : programme défaillant ! \n ");
+        }
     } else {
         fprintf(stderr, RED"Ratio mémoire libérée/mémoire allouée : N/A (aucune mémoire allouée)" RESET "\n");
     }
@@ -172,6 +187,7 @@ void show_track(void){
 }
 
 void end_track(void){
+    // Affichage et nettoyage de la structure
     show_begin_track();
     printStringList(&list);
     show_track();
@@ -207,12 +223,14 @@ Cellule* create_cell(void* data,size_t size_type,bool state){
 }
 
 void add_to_list(Cellule* new_cell){
+        // Ajout d'une adresse mémoire dans le tableau
         if (!new_cell) return;
         new_cell->suiv = table.list_ptrs;
         table.list_ptrs = new_cell;
 }
 
 void *my_malloc(const char* file,const char* func, int line,size_t size_type) {
+    //Clone de malloc
     if (!flag) {
       initialize_tracing();
     }
@@ -238,6 +256,7 @@ void *my_malloc(const char* file,const char* func, int line,size_t size_type) {
 }
 
 void *my_calloc(const char* file,const char* func, int line,int size, size_t size_type){
+    //Clone de calloc
     if (!flag) {
       initialize_tracing();
     }
@@ -264,6 +283,7 @@ void *my_calloc(const char* file,const char* func, int line,int size, size_t siz
 }
 
 void *my_realloc(const char* file, const char* func, int line, void* ptr, size_t size_type) {
+    // Clone de realloc
     if (!flag) {
         fprintf(stderr, "Erreur : réallocation impossible (utilisez malloc/calloc avant d'utiliser realloc)!");
         exit(EXIT_FAILURE);
@@ -295,11 +315,11 @@ void *my_realloc(const char* file, const char* func, int line, void* ptr, size_t
 }
 
 void my_free(const char* file,const char* func, int line,void* ptr) {
+    //Clone de free
     if (!flag) {
       fprintf(stderr, "Erreur : libération impossible (aucune allocation faite avec malloc/calloc)");
       exit(EXIT_FAILURE);
     }
-    //printf("capacity3 : %zu\n",list.capacity);
     if (!ptr) return;
     Liste temp = table.list_ptrs;
     while (temp) {

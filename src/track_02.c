@@ -1,7 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<stdbool.h>
-
+// Author : Christophe TARATIBU
 // Liste chainée (symbolise les blocs mémoire)
 
 typedef struct cell{
