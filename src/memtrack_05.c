@@ -282,38 +282,6 @@ void *my_calloc(const char* file,const char* func, int line,int size, size_t siz
 
 }
 
-void *my_realloc(const char* file, const char* func, int line, void* ptr, size_t size_type) {
-    // Clone de realloc
-    if (!flag) {
-        fprintf(stderr, "Erreur : réallocation impossible (utilisez malloc/calloc avant d'utiliser realloc)!");
-        exit(EXIT_FAILURE);
-    }
-    if (!ptr) return NULL;
-
-    Liste temp = table.list_ptrs;
-    while (temp) {
-        if ((temp->data == ptr) && (temp->boolean == true)) {
-            void* new_ptr = realloc(ptr, size_type);
-            if (!new_ptr) {
-                fprintf(stderr, "Erreur d'allocation de mémoire");
-                return NULL;
-            }
-            temp->data = new_ptr;
-            table.nb_reallocs++;
-            char buffer[256];
-            snprintf(buffer, sizeof(buffer),"in file<%s> function <%s> line <%d> - (call#%d) - realloc(%ld) -> %p",
-                    file, func, line, table.nb_reallocs, size_type, new_ptr);
-            addString(&list,buffer);
-            table.mem_used += size_type;
-            temp->size += size_type;
-            return new_ptr;
-        }
-        temp = temp->suiv;
-    }
-    fprintf(stderr, "Erreur : pointeur non trouvé pour réallocation");
-    return NULL;
-}
-
 void my_free(const char* file,const char* func, int line,void* ptr) {
     //Clone de free
     if (!flag) {
@@ -348,4 +316,40 @@ void my_free(const char* file,const char* func, int line,void* ptr) {
     char buffer[256];
     snprintf(buffer, sizeof(buffer), RED "in file<%s> function <%s> line <%d> - (call#%d) - free(%p) - Erreur : adresse non trouvée" RESET, file, func, line, table.nb_frees_failed, ptr);
     addString(&list,buffer);
+}
+
+
+void *my_realloc(const char* file, const char* func, int line, void* ptr, size_t size_type) {
+    // Clone de realloc
+    if (!flag) {
+        fprintf(stderr, "Erreur : réallocation impossible (utilisez malloc/calloc avant d'utiliser realloc)!");
+        exit(EXIT_FAILURE);
+    }
+    if (!ptr) return NULL;
+    if (size_type == 0) {
+        my_free(file,func,line,ptr);
+        return NULL;
+    }
+    Liste temp = table.list_ptrs;
+    while (temp) {
+        if ((temp->data == ptr) && (temp->boolean == true)) {
+            void* new_ptr = realloc(ptr, size_type);
+            if (!new_ptr) {
+                fprintf(stderr, "Erreur d'allocation de mémoire");
+                return NULL;
+            }
+            temp->data = new_ptr;
+            table.nb_reallocs++;
+            char buffer[256];
+            snprintf(buffer, sizeof(buffer),"in file<%s> function <%s> line <%d> - (call#%d) - realloc(%ld) -> %p",
+                    file, func, line, table.nb_reallocs, size_type, new_ptr);
+            addString(&list,buffer);
+            table.mem_used += size_type;
+            temp->size += size_type;
+            return new_ptr;
+        }
+        temp = temp->suiv;
+    }
+    fprintf(stderr, "Erreur : pointeur non trouvé pour réallocation");
+    return NULL;
 }

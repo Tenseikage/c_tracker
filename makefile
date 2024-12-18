@@ -37,4 +37,3 @@ uninstall:
 
 clean:
 	rm -f $(BUILD)/mtrack.o $(LIBS)/$(LIB)
-	rm -rf $(BUILD)
