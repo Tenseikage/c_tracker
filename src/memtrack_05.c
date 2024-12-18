@@ -139,15 +139,15 @@ void show_begin_track(void){
     fprintf(stderr,"DATE : %02d/%02d/%04d %02d:%02d:%02d\n",
            local->tm_mday, local->tm_mon + 1, local->tm_year + 1900,
            local->tm_hour, local->tm_min, local->tm_sec);
-    // Obtenir le nom de l'utilisateur
+    // Nom de l'utilisateur
     struct passwd *pw = getpwuid(getuid());
     const char *user = pw->pw_name;
 
-    // Obtenir le nom de l'hôte
+    // Nom de l'hôte
     char hostname[HOST_NAME_MAX];
     gethostname(hostname, sizeof(hostname));
 
-    // Obtenir le répertoire de travail
+    // Repertoire de travail
     char cwd[PATH_MAX];
     getcwd(cwd, sizeof(cwd));
     fprintf(stderr,"USER : %s\n", user);

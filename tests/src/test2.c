@@ -5,8 +5,8 @@ int main(void){
 	char *a=malloc(1);
 	char *b=malloc(1);
 	char *c = calloc(1,sizeof(char));
-	a = realloc(a,0);
 	free(a);
+	a = realloc(a,1);
 	free(b); 
 	free(c);
 	return 0;
