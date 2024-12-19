@@ -190,6 +190,7 @@ void end_track(void){
     // Affichage et nettoyage de la structure
     show_begin_track();
     printStringList(&list);
+    freeStringList(&list);
     show_track();
     clean_Table();
 }

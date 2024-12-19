@@ -1,3 +1,0 @@
-gcc -c memtrack_05.c -o memtrack_05.o
-gcc -include memtrack_05.h -c track_04.c -o track_04.o
-gcc memtrack_05.o track_04.o -o track_04
