@@ -6,6 +6,7 @@ int main(void){
 	char *b=malloc(1);
 	char *c = calloc(1,sizeof(char));
 	a = realloc(a,1);
+	a = realloc(a,3);
 	free(a);
 	free(b); 
 	free(c);

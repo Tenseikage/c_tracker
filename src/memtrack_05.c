@@ -112,10 +112,11 @@ void clean_Table(void) {
     Liste temp = table.list_ptrs;
     while (temp != NULL) {
         Liste to_free = temp;
+        temp = temp->suiv;
         if(to_free->boolean){
             free(to_free->data);
         }
-        temp = temp->suiv;
+        free(to_free);
     }
     table.list_ptrs = NULL;
     table.nb_mallocs = 0;
@@ -354,3 +355,4 @@ void *my_realloc(const char* file, const char* func, int line, void* ptr, size_t
     fprintf(stderr, "Erreur : pointeur non trouvé pour réallocation");
     return NULL;
 }
+
